@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peek Deck — Balatro Viewer</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="hud-bar">
+        <div class="hud-item">
+          <span class="hud-label">SEED</span>
+          <span id="val-seed" class="hud-val font-mono">--------</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">ANTE</span>
+          <span id="val-ante" class="hud-val">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">BLIND</span>
+          <span id="val-blind" class="hud-val highlight">None</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">HANDS</span>
+          <span id="val-hands" class="hud-val">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">DISCARDS</span>
+          <span id="val-discards" class="hud-val">0</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-label">DECK</span>
+          <span id="val-deck-size" class="hud-val">0</span>
+        </div>
+      </header>
+
+      <section class="section-container">
+        <div class="section-header">
+          <h2>DRAW PILE <span class="subtext">(next drawn cards in order)</span></h2>
+          <span id="pile-count" class="count-badge">0 cards</span>
+        </div>
+        <div id="draw-pile-list" class="card-grid">
+          <div class="empty-state">Waiting for Balatro run data...</div>
+        </div>
+      </section>
+
+      <section class="section-container">
+        <div class="section-header">
+          <h2>CURRENT HAND</h2>
+          <span id="hand-count" class="count-badge">0 cards</span>
+        </div>
+        <div id="hand-list" class="card-grid hand-grid">
+          <div class="empty-state">No cards in hand</div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

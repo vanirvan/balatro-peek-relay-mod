@@ -119,12 +119,21 @@ local function dump_live_state()
 
     local in_game = G.GAME and G.GAME.round_resets and true or false
 
+    local blind_name = ""
+    local blind_chip_target = 0
+    if G.GAME and G.GAME.blind then
+        blind_name = G.GAME.blind.name or ""
+        blind_chip_target = G.GAME.blind.chips or 0
+    end
+
     local payload = {
         timestamp = os.time(),
         status = in_game and "in_game" or "idle",
         seed = (G.GAME and G.GAME.pseudorandom and G.GAME.pseudorandom.seed) or "",
         ante = (G.GAME and G.GAME.round_resets and G.GAME.round_resets.ante) or 0,
         round = (G.GAME and G.GAME.round) or 0,
+        blind = blind_name,
+        blind_chips = blind_chip_target,
         hands_left = (G.GAME and G.GAME.current_round and G.GAME.current_round.hands_left) or 0,
         discards_left = (G.GAME and G.GAME.current_round and G.GAME.current_round.discards_left) or 0,
         deck_size = total_cards,
@@ -135,7 +144,7 @@ local function dump_live_state()
     local json_str = to_json(payload)
 
     -- Quick change-detect to avoid redundant disk writes
-    local hash = string.format("%d_%d_%d_%d", total_cards, #hand, payload.hands_left, payload.discards_left)
+    local hash = string.format("%d_%d_%d_%d_%s", total_cards, #hand, payload.hands_left, payload.discards_left, blind_name)
     if draw_pile[1] then
         hash = hash .. "_" .. tostring(draw_pile[1].id)
     end
