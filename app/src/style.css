@@ -134,6 +134,75 @@ body {
   transition: transform 0.1s ease;
 }
 
+.hand-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scoring-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #11141c;
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.scoring-banner.hidden {
+  display: none;
+}
+
+.scoring-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.scoring-lvl {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.scoring-score {
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding-left: 4px;
+  border-left: 1px solid var(--border);
+}
+
+.score-chips {
+  color: var(--accent-blue);
+  background: rgba(52, 152, 219, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.score-mult {
+  color: var(--accent-red);
+  background: rgba(231, 76, 60, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.card-wrapper.is-selected {
+  transform: translateY(-8px);
+  border-color: #5dade2;
+  box-shadow: 0 4px 12px rgba(93, 173, 226, 0.4);
+}
+
+.card-wrapper.is-scoring {
+  transform: translateY(-10px);
+  border-color: #f1c40f;
+  box-shadow: 0 0 16px rgba(241, 196, 15, 0.7);
+}
+
 .card-wrapper.is-next-draw {
   border-color: var(--accent-gold);
   box-shadow: 0 0 10px rgba(245, 176, 65, 0.45);

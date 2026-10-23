@@ -20,21 +20,31 @@ type Card struct {
 	Enhancement *string     `json:"enhancement,omitempty"`
 	Edition     *string     `json:"edition,omitempty"`
 	Debuffed    bool        `json:"debuffed"`
+	Selected    bool        `json:"selected"`
+	Scoring     bool        `json:"scoring"`
+}
+
+type ScoringHand struct {
+	Name  string `json:"name"`
+	Level int    `json:"level"`
+	Chips int    `json:"chips"`
+	Mult  int    `json:"mult"`
 }
 
 type LiveState struct {
-	Timestamp    int64   `json:"timestamp"`
-	Status       string  `json:"status"`
-	Seed         string  `json:"seed"`
-	Ante         int     `json:"ante"`
-	Round        int     `json:"round"`
-	Blind        string  `json:"blind"`
-	BlindChips   int64   `json:"blind_chips"`
-	HandsLeft    int     `json:"hands_left"`
-	DiscardsLeft int     `json:"discards_left"`
-	DeckSize     int     `json:"deck_size"`
-	DrawPile     []Card  `json:"draw_pile"`
-	Hand         []Card  `json:"hand"`
+	Timestamp    int64       `json:"timestamp"`
+	Status       string      `json:"status"`
+	Seed         string      `json:"seed"`
+	Ante         int         `json:"ante"`
+	Round        int         `json:"round"`
+	Blind        string      `json:"blind"`
+	BlindChips   int64       `json:"blind_chips"`
+	HandsLeft    int         `json:"hands_left"`
+	DiscardsLeft int         `json:"discards_left"`
+	DeckSize     int         `json:"deck_size"`
+	ScoringHand  ScoringHand `json:"scoring_hand"`
+	DrawPile     []Card      `json:"draw_pile"`
+	Hand         []Card      `json:"hand"`
 }
 
 type PeekBridge struct{}

@@ -81,6 +81,13 @@ function renderCard(card: Card, index?: number): HTMLElement {
     wrapper.classList.add("is-next-draw");
   }
 
+  if (card.selected) {
+    wrapper.classList.add("is-selected");
+  }
+  if (card.scoring) {
+    wrapper.classList.add("is-scoring");
+  }
+
   // Card container stacking base/enhancer behind front suit/rank sprite
   const cardBox = document.createElement("div");
   cardBox.className = "card-box";
@@ -218,8 +225,30 @@ function updateHand(cards: Card[]) {
   container.appendChild(frag);
 }
 
+function updateScoringBanner(scoringHand?: LiveState["scoring_hand"]) {
+  const banner = document.getElementById("scoring-hand-banner");
+  const nameEl = document.getElementById("scoring-hand-name");
+  const lvlEl = document.getElementById("scoring-hand-lvl");
+  const chipsEl = document.getElementById("scoring-chips");
+  const multEl = document.getElementById("scoring-mult");
+
+  if (!banner || !nameEl || !lvlEl || !chipsEl || !multEl) return;
+
+  if (!scoringHand || !scoringHand.name) {
+    banner.classList.add("hidden");
+    return;
+  }
+
+  nameEl.textContent = scoringHand.name;
+  lvlEl.textContent = `lvl.${scoringHand.level || 1}`;
+  chipsEl.textContent = String(scoringHand.chips || 0);
+  multEl.textContent = String(scoringHand.mult || 0);
+  banner.classList.remove("hidden");
+}
+
 function applyState(state: LiveState) {
   updateHUD(state);
+  updateScoringBanner(state.scoring_hand);
   updateDrawPile(state.draw_pile || []);
   updateHand(state.hand || []);
 }

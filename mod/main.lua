@@ -59,7 +59,7 @@ local function to_json(val)
     return "null"
 end
 
-local function extract_card(card)
+local function extract_card(card, is_selected, is_scoring)
     if not card then return nil end
 
     local rank = (card.base and card.base.value) or nil
@@ -90,7 +90,9 @@ local function extract_card(card)
         seal = seal,
         enhancement = enhancement,
         edition = edition,
-        debuffed = card.debuff and true or false
+        debuffed = card.debuff and true or false,
+        selected = is_selected and true or false,
+        scoring = is_scoring and true or false
     }
 end
 
@@ -101,16 +103,55 @@ local function dump_live_state()
     -- G.deck.cards: tail is next drawn card. Iterate backwards so index 1 = next draw.
     local total_cards = #G.deck.cards
     for i = total_cards, 1, -1 do
-        local c = extract_card(G.deck.cards[i])
+        local c = extract_card(G.deck.cards[i], false, false)
         if c then
             draw_pile[#draw_pile + 1] = c
+        end
+    end
+
+    -- Check highlighted/selected cards in hand
+    local highlighted_set = {}
+    local highlighted_cards = {}
+    if G.hand and G.hand.highlighted then
+        for i = 1, #G.hand.highlighted do
+            local card = G.hand.highlighted[i]
+            highlighted_set[card] = true
+            highlighted_cards[#highlighted_cards + 1] = card
+        end
+    end
+
+    -- Evaluate poker hand using official Balatro engine function
+    local hand_name = ""
+    local hand_level = 0
+    local hand_chips = 0
+    local hand_mult = 0
+    local scoring_set = {}
+
+    if #highlighted_cards > 0 and G.FUNCS and G.FUNCS.get_poker_hand_info then
+        local text, loc_disp_text, poker_hands, scoring_hand, disp_text = G.FUNCS.get_poker_hand_info(highlighted_cards)
+        if text and text ~= "NULL" then
+            hand_name = disp_text or text
+            if scoring_hand then
+                for _, sc in ipairs(scoring_hand) do
+                    scoring_set[sc] = true
+                end
+            end
+            if G.GAME and G.GAME.hands and G.GAME.hands[text] then
+                local h_info = G.GAME.hands[text]
+                hand_level = h_info.level or 1
+                hand_chips = h_info.chips or 0
+                hand_mult = h_info.mult or 0
+            end
         end
     end
 
     local hand = {}
     if G.hand and G.hand.cards then
         for i = 1, #G.hand.cards do
-            local c = extract_card(G.hand.cards[i])
+            local card = G.hand.cards[i]
+            local is_selected = highlighted_set[card] or false
+            local is_scoring = scoring_set[card] or false
+            local c = extract_card(card, is_selected, is_scoring)
             if c then
                 hand[#hand + 1] = c
             end
@@ -137,6 +178,12 @@ local function dump_live_state()
         hands_left = (G.GAME and G.GAME.current_round and G.GAME.current_round.hands_left) or 0,
         discards_left = (G.GAME and G.GAME.current_round and G.GAME.current_round.discards_left) or 0,
         deck_size = total_cards,
+        scoring_hand = {
+            name = hand_name,
+            level = hand_level,
+            chips = hand_chips,
+            mult = hand_mult
+        },
         draw_pile = draw_pile,
         hand = hand
     }
@@ -144,7 +191,7 @@ local function dump_live_state()
     local json_str = to_json(payload)
 
     -- Quick change-detect to avoid redundant disk writes
-    local hash = string.format("%d_%d_%d_%d_%s", total_cards, #hand, payload.hands_left, payload.discards_left, blind_name)
+    local hash = string.format("%d_%d_%d_%d_%d_%s_%s", total_cards, #hand, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name)
     if draw_pile[1] then
         hash = hash .. "_" .. tostring(draw_pile[1].id)
     end
@@ -164,6 +211,9 @@ function Game:update(dt)
     update_timer = update_timer + dt
     if update_timer >= UPDATE_INTERVAL then
         update_timer = 0
-        pcall(dump_live_state)
+        local ok, err = pcall(dump_live_state)
+        if not ok then
+            print("[PeekRelay ERROR] " .. tostring(err))
+        end
     end
 end

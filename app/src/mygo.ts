@@ -12,6 +12,8 @@ export interface Card {
   enhancement?: string;
   edition?: string;
   debuffed: boolean;
+  selected: boolean;
+  scoring: boolean;
 }
 
 export interface LiveState {
@@ -25,8 +27,16 @@ export interface LiveState {
   hands_left: number;
   discards_left: number;
   deck_size: number;
+  scoring_hand: ScoringHand;
   draw_pile: Card[];
   hand: Card[];
+}
+
+export interface ScoringHand {
+  name: string;
+  level: number;
+  chips: number;
+  mult: number;
 }
 
 // ---- Services ----
