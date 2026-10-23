@@ -28,6 +28,8 @@ export interface LiveState {
   discards_left: number;
   deck_size: number;
   scoring_hand: ScoringHand;
+  jokers: SpecialCard[];
+  consumables: SpecialCard[];
   draw_pile: Card[];
   hand: Card[];
 }
@@ -37,6 +39,24 @@ export interface ScoringHand {
   level: number;
   chips: number;
   mult: number;
+}
+
+export interface SpecialCard {
+  id: unknown;
+  name: string;
+  set: string;
+  pos_x: number;
+  pos_y: number;
+  edition?: string;
+  debuffed: boolean;
+  rarity: number;
+  eternal: boolean;
+  perishable: boolean;
+  rental: boolean;
+  pinned: boolean;
+  val_mult?: number;
+  val_x_mult?: number;
+  val_chips?: number;
 }
 
 // ---- Services ----

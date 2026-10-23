@@ -24,6 +24,24 @@ type Card struct {
 	Scoring     bool        `json:"scoring"`
 }
 
+type SpecialCard struct {
+	ID         interface{} `json:"id"`
+	Name       string      `json:"name"`
+	Set        string      `json:"set"`
+	PosX       int         `json:"pos_x"`
+	PosY       int         `json:"pos_y"`
+	Edition    *string     `json:"edition,omitempty"`
+	Debuffed   bool        `json:"debuffed"`
+	Rarity     int         `json:"rarity"`
+	Eternal    bool        `json:"eternal"`
+	Perishable bool        `json:"perishable"`
+	Rental     bool        `json:"rental"`
+	Pinned     bool        `json:"pinned"`
+	ValMult    *float64    `json:"val_mult,omitempty"`
+	ValXMult   *float64    `json:"val_x_mult,omitempty"`
+	ValChips   *float64    `json:"val_chips,omitempty"`
+}
+
 type ScoringHand struct {
 	Name  string `json:"name"`
 	Level int    `json:"level"`
@@ -32,19 +50,21 @@ type ScoringHand struct {
 }
 
 type LiveState struct {
-	Timestamp    int64       `json:"timestamp"`
-	Status       string      `json:"status"`
-	Seed         string      `json:"seed"`
-	Ante         int         `json:"ante"`
-	Round        int         `json:"round"`
-	Blind        string      `json:"blind"`
-	BlindChips   int64       `json:"blind_chips"`
-	HandsLeft    int         `json:"hands_left"`
-	DiscardsLeft int         `json:"discards_left"`
-	DeckSize     int         `json:"deck_size"`
-	ScoringHand  ScoringHand `json:"scoring_hand"`
-	DrawPile     []Card      `json:"draw_pile"`
-	Hand         []Card      `json:"hand"`
+	Timestamp    int64         `json:"timestamp"`
+	Status       string        `json:"status"`
+	Seed         string        `json:"seed"`
+	Ante         int           `json:"ante"`
+	Round        int           `json:"round"`
+	Blind        string        `json:"blind"`
+	BlindChips   int64         `json:"blind_chips"`
+	HandsLeft    int           `json:"hands_left"`
+	DiscardsLeft int           `json:"discards_left"`
+	DeckSize     int           `json:"deck_size"`
+	ScoringHand  ScoringHand   `json:"scoring_hand"`
+	Jokers       []SpecialCard `json:"jokers"`
+	Consumables  []SpecialCard `json:"consumables"`
+	DrawPile     []Card        `json:"draw_pile"`
+	Hand         []Card        `json:"hand"`
 }
 
 type PeekBridge struct{}

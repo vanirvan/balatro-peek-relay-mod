@@ -1,4 +1,4 @@
-import { PeekBridge, events, type Card, type LiveState } from "./mygo";
+import { PeekBridge, events, type Card, type LiveState, type SpecialCard } from "./mygo";
 
 // Balatro 8BitDeck atlas layout (pos: {x, y})
 // Each card cell: 71px x 95px
@@ -56,6 +56,14 @@ const SEAL_POS: Record<string, { x: number; y: number }> = {
   Purple: { x: 4, y: 4 },
   Red: { x: 5, y: 4 },
   Blue: { x: 6, y: 4 },
+};
+
+// Stickers atlas (stickers.png in Balatro)
+// Eternal: {x: 0, y: 0}, Perishable: {x: 0, y: 2}, Rental: {x: 1, y: 2}
+const STICKER_POS = {
+  eternal: { x: 0, y: 0 },
+  perishable: { x: 0, y: 2 },
+  rental: { x: 1, y: 2 },
 };
 
 function getEnhancerOffset(pos: { x: number; y: number }): { x: number; y: number } {
@@ -167,6 +175,143 @@ function renderCard(card: Card, index?: number): HTMLElement {
   return wrapper;
 }
 
+function renderSpecialCard(card: SpecialCard): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "card-wrapper";
+
+  const cardBox = document.createElement("div");
+  cardBox.className = "card-box";
+
+  // Base card background (c_base)
+  const baseLayer = document.createElement("div");
+  baseLayer.className = "card-layer card-base-layer";
+  const baseOffset = getEnhancerOffset(BASE_CARD_POS);
+  baseLayer.style.backgroundPosition = `${baseOffset.x}px ${baseOffset.y}px`;
+  cardBox.appendChild(baseLayer);
+
+  // Artwork layer: Jokers or Tarots/Planet/Spectral
+  const artLayer = document.createElement("div");
+  artLayer.className = "card-layer";
+  if (card.set === "Joker") {
+    artLayer.classList.add("card-joker-layer");
+  } else if (card.set === "Voucher") {
+    artLayer.classList.add("card-voucher-layer");
+  } else {
+    artLayer.classList.add("card-tarot-layer");
+  }
+  artLayer.style.backgroundPosition = `${-(card.pos_x * CARD_W)}px ${-(card.pos_y * CARD_H)}px`;
+  cardBox.appendChild(artLayer);
+
+  // Edition shader
+  if (card.edition) {
+    const editionLayer = document.createElement("div");
+    editionLayer.className = `card-layer card-edition-layer edition-${card.edition.toLowerCase()}`;
+    cardBox.appendChild(editionLayer);
+  }
+
+  // Sticker layers (Eternal, Perishable, Rental)
+  if (card.eternal) {
+    const stickerLayer = document.createElement("div");
+    stickerLayer.className = "card-layer card-sticker-layer";
+    stickerLayer.style.backgroundPosition = `${-(STICKER_POS.eternal.x * CARD_W)}px ${-(STICKER_POS.eternal.y * CARD_H)}px`;
+    cardBox.appendChild(stickerLayer);
+  }
+  if (card.perishable) {
+    const stickerLayer = document.createElement("div");
+    stickerLayer.className = "card-layer card-sticker-layer";
+    stickerLayer.style.backgroundPosition = `${-(STICKER_POS.perishable.x * CARD_W)}px ${-(STICKER_POS.perishable.y * CARD_H)}px`;
+    cardBox.appendChild(stickerLayer);
+  }
+  if (card.rental) {
+    const stickerLayer = document.createElement("div");
+    stickerLayer.className = "card-layer card-sticker-layer";
+    stickerLayer.style.backgroundPosition = `${-(STICKER_POS.rental.x * CARD_W)}px ${-(STICKER_POS.rental.y * CARD_H)}px`;
+    cardBox.appendChild(stickerLayer);
+  }
+
+  // Dynamic Value Pill (e.g. +1 Mult, 1.5x, +50 Chips)
+  if (card.val_x_mult !== undefined) {
+    const valBadge = document.createElement("span");
+    valBadge.className = "joker-val-badge val-badge-xmult";
+    valBadge.textContent = `${card.val_x_mult}X`;
+    cardBox.appendChild(valBadge);
+  } else if (card.val_mult !== undefined) {
+    const valBadge = document.createElement("span");
+    valBadge.className = "joker-val-badge val-badge-mult";
+    valBadge.textContent = `+${card.val_mult}`;
+    cardBox.appendChild(valBadge);
+  } else if (card.val_chips !== undefined) {
+    const valBadge = document.createElement("span");
+    valBadge.className = "joker-val-badge val-badge-chips";
+    valBadge.textContent = `+${card.val_chips}`;
+    cardBox.appendChild(valBadge);
+  }
+
+  wrapper.appendChild(cardBox);
+
+  // Label name under card
+  if (card.name) {
+    const nameLabel = document.createElement("div");
+    nameLabel.className = "special-name";
+    nameLabel.textContent = card.name;
+    nameLabel.title = card.name;
+    wrapper.appendChild(nameLabel);
+  }
+
+  // Edition badge
+  if (card.edition) {
+    const badgeRow = document.createElement("div");
+    badgeRow.className = "card-badge-row";
+    const editionBadge = document.createElement("span");
+    editionBadge.className = `badge badge-${card.edition.toLowerCase()}`;
+    editionBadge.textContent = card.edition;
+    badgeRow.appendChild(editionBadge);
+    wrapper.appendChild(badgeRow);
+  }
+
+  return wrapper;
+}
+
+function updateJokers(jokers: SpecialCard[]) {
+  const container = document.getElementById("jokers-list");
+  const countBadge = document.getElementById("jokers-count");
+  if (!container) return;
+
+  if (countBadge) countBadge.textContent = `${jokers.length} cards`;
+
+  if (jokers.length === 0) {
+    container.innerHTML = `<div class="empty-state">No Jokers</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  jokers.forEach((j) => {
+    frag.appendChild(renderSpecialCard(j));
+  });
+  container.appendChild(frag);
+}
+
+function updateConsumables(consumables: SpecialCard[]) {
+  const container = document.getElementById("consumables-list");
+  const countBadge = document.getElementById("consumables-count");
+  if (!container) return;
+
+  if (countBadge) countBadge.textContent = `${consumables.length} cards`;
+
+  if (consumables.length === 0) {
+    container.innerHTML = `<div class="empty-state">No Consumables</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  consumables.forEach((c) => {
+    frag.appendChild(renderSpecialCard(c));
+  });
+  container.appendChild(frag);
+}
+
 function updateHUD(state: LiveState) {
   const seedEl = document.getElementById("val-seed");
   const anteEl = document.getElementById("val-ante");
@@ -249,6 +394,8 @@ function updateScoringBanner(scoringHand?: LiveState["scoring_hand"]) {
 function applyState(state: LiveState) {
   updateHUD(state);
   updateScoringBanner(state.scoring_hand);
+  updateJokers(state.jokers || []);
+  updateConsumables(state.consumables || []);
   updateDrawPile(state.draw_pile || []);
   updateHand(state.hand || []);
 }

@@ -96,6 +96,85 @@ local function extract_card(card, is_selected, is_scoring)
     }
 end
 
+local function extract_special_card(card)
+    if not card then return nil end
+
+    local center = card.config and card.config.center
+    local name = (center and center.name) or (card.ability and card.ability.name) or ""
+    local set_type = (center and center.set) or (card.ability and card.ability.set) or ""
+    local pos = center and center.pos or {x = 0, y = 0}
+
+    local edition = nil
+    if card.edition then
+        if card.edition.foil then edition = "foil"
+        elseif card.edition.holo then edition = "holo"
+        elseif card.edition.polychrome then edition = "polychrome"
+        elseif card.edition.negative then edition = "negative"
+        elseif type(card.edition.type) == "string" then edition = card.edition.type
+        end
+    end
+
+    -- Read accurate visual X coordinate (VT.x is rendered transform, T.x is target transform)
+    local visual_x = 0
+    if card.VT and type(card.VT.x) == "number" then
+        visual_x = card.VT.x
+    elseif card.T and type(card.T.x) == "number" then
+        visual_x = card.T.x
+    end
+
+    -- Dynamic scaling values (e.g., mult on Ride the Bus, chips on Ice Cream, x_mult on Constellation)
+    local val_mult = nil
+    local val_x_mult = nil
+    local val_chips = nil
+    if card.ability then
+        if type(card.ability.mult) == "number" and card.ability.mult > 0 then
+            val_mult = card.ability.mult
+        end
+        if type(card.ability.x_mult) == "number" and card.ability.x_mult > 1 then
+            val_x_mult = card.ability.x_mult
+        end
+        if type(card.ability.chips) == "number" and card.ability.chips > 0 then
+            val_chips = card.ability.chips
+        end
+        -- Some jokers store dynamic mult/chips inside extra
+        if type(card.ability.extra) == "table" then
+            if type(card.ability.extra.mult) == "number" and card.ability.extra.mult > 0 and not val_mult then
+                val_mult = card.ability.extra.mult
+            end
+            if type(card.ability.extra.chips) == "number" and card.ability.extra.chips > 0 and not val_chips then
+                val_chips = card.ability.extra.chips
+            end
+            if type(card.ability.extra.Xmult) == "number" and card.ability.extra.Xmult > 1 and not val_x_mult then
+                val_x_mult = card.ability.extra.Xmult
+            end
+        end
+    end
+
+    local is_eternal = (card.ability and card.ability.eternal) and true or false
+    local is_perishable = (card.ability and card.ability.perishable) and true or false
+    local is_rental = (card.ability and card.ability.rental) and true or false
+    local is_pinned = card.pinned and true or false
+
+    return {
+        id = card.unique_val or card.ID or 0,
+        name = name,
+        set = set_type,
+        pos_x = pos.x or 0,
+        pos_y = pos.y or 0,
+        edition = edition,
+        debuffed = card.debuff and true or false,
+        rarity = center and center.rarity or 1,
+        sort_x = visual_x,
+        eternal = is_eternal,
+        perishable = is_perishable,
+        rental = is_rental,
+        pinned = is_pinned,
+        val_mult = val_mult,
+        val_x_mult = val_x_mult,
+        val_chips = val_chips
+    }
+end
+
 local function dump_live_state()
     if not G or not G.deck or not G.deck.cards then return end
 
@@ -158,6 +237,32 @@ local function dump_live_state()
         end
     end
 
+    -- Extract active Jokers (sorted by visual X position: left to right)
+    local jokers = {}
+    if G.jokers and G.jokers.cards then
+        if G.jokers.sort_cards then pcall(function() G.jokers:sort_cards() end) end
+        for i = 1, #G.jokers.cards do
+            local jc = extract_special_card(G.jokers.cards[i])
+            if jc then
+                jokers[#jokers + 1] = jc
+            end
+        end
+        table.sort(jokers, function(a, b) return a.sort_x < b.sort_x end)
+    end
+
+    -- Extract active Consumables (Tarots, Planets, Spectrals sorted left to right)
+    local consumables = {}
+    if G.consumeables and G.consumeables.cards then
+        if G.consumeables.sort_cards then pcall(function() G.consumeables:sort_cards() end) end
+        for i = 1, #G.consumeables.cards do
+            local cc = extract_special_card(G.consumeables.cards[i])
+            if cc then
+                consumables[#consumables + 1] = cc
+            end
+        end
+        table.sort(consumables, function(a, b) return a.sort_x < b.sort_x end)
+    end
+
     local in_game = G.GAME and G.GAME.round_resets and true or false
 
     local blind_name = ""
@@ -184,6 +289,8 @@ local function dump_live_state()
             chips = hand_chips,
             mult = hand_mult
         },
+        jokers = jokers,
+        consumables = consumables,
         draw_pile = draw_pile,
         hand = hand
     }
@@ -191,9 +298,16 @@ local function dump_live_state()
     local json_str = to_json(payload)
 
     -- Quick change-detect to avoid redundant disk writes
-    local hash = string.format("%d_%d_%d_%d_%d_%s_%s", total_cards, #hand, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name)
+    local hash = string.format("%d_%d_%d_%d_%d_%d_%d_%s_%s", total_cards, #hand, #jokers, #consumables, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name)
     if draw_pile[1] then
         hash = hash .. "_" .. tostring(draw_pile[1].id)
+    end
+    for i = 1, #jokers do
+        local j = jokers[i]
+        hash = hash .. "_j" .. tostring(j.id) .. "_" .. tostring(j.val_mult or 0) .. "_" .. tostring(j.val_chips or 0) .. "_" .. tostring(j.val_x_mult or 0)
+    end
+    for i = 1, #consumables do
+        hash = hash .. "_c" .. tostring(consumables[i].id)
     end
 
     if hash ~= last_dump_hash then

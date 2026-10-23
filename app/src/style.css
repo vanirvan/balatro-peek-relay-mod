@@ -79,6 +79,98 @@ body {
   margin-bottom: 14px;
 }
 
+.top-cards-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.jokers-section {
+  flex: 3;
+  margin-bottom: 0;
+}
+
+.consumables-section {
+  flex: 2;
+  margin-bottom: 0;
+}
+
+.special-grid {
+  min-height: 110px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-joker-layer {
+  background-image: url("/textures/Jokers.png");
+  background-size: 710px 1520px;
+  z-index: 2;
+}
+
+.card-tarot-layer {
+  background-image: url("/textures/Tarots.png");
+  background-size: 710px 570px;
+  z-index: 2;
+}
+
+.card-voucher-layer {
+  background-image: url("/textures/Vouchers.png");
+  background-size: 639px 380px;
+  z-index: 2;
+}
+
+/* Layer for Stickers: Eternal, Perishable, Rental (stickers.png 710x570 px at 2x -> 355x285 px at 1x) */
+.card-sticker-layer {
+  background-image: url("/textures/stickers.png");
+  background-size: 355px 285px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Dynamic Value Badge on Joker (e.g. +1 Mult, 1.5x, +50 Chips) */
+.joker-val-badge {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  z-index: 6;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.val-badge-mult {
+  background: var(--accent-red);
+  color: white;
+}
+
+.val-badge-xmult {
+  background: #c0392b;
+  color: #f1c40f;
+  border: 1px solid #f1c40f;
+}
+
+.val-badge-chips {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.special-name {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 3px;
+  max-width: 71px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
