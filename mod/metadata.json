@@ -1,0 +1,11 @@
+{
+  "id": "PeekRelay",
+  "name": "Peek Relay",
+  "display_name": "Peek Relay",
+  "author": ["Irvan"],
+  "description": "Bridge mod: exports real-time draw pile and game state to live_deck.json for desktop viewers.",
+  "prefix": "peekrelay",
+  "main_file": "main.lua",
+  "version": "1.0.0",
+  "dependencies": []
+}

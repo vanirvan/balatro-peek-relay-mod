@@ -1,0 +1,27 @@
+# Binaries and build output
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+build/
+
+# Go
+vendor/
+
+# Node / Frontend (if using Wails)
+node_modules/
+
+# Local game artifacts / test dumps
+live_deck.json
+
+# Internal plans
+PEEK_DECK_PLAN.md
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
