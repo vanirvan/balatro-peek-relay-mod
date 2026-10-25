@@ -400,6 +400,47 @@ function applyState(state: LiveState) {
   updateHand(state.hand || []);
 }
 
+function initDrawPileCollapse() {
+  const toggleBtn = document.getElementById("draw-pile-toggle");
+  const section = document.getElementById("draw-pile-section");
+  const label = toggleBtn?.querySelector(".collapse-label");
+  if (!toggleBtn || !section) return;
+
+  const STORAGE_KEY = "peek_draw_pile_collapsed";
+
+  const setCollapsed = (collapsed: boolean) => {
+    section.classList.toggle("is-collapsed", collapsed);
+    toggleBtn.setAttribute("aria-expanded", String(!collapsed));
+    toggleBtn.title = collapsed ? "Expand Draw Pile" : "Collapse Draw Pile";
+    if (label) {
+      label.textContent = collapsed ? "Expand" : "Collapse";
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, String(collapsed));
+    } catch {
+      // Ignore storage errors in private browsing
+    }
+  };
+
+  let initialCollapsed = false;
+  try {
+    initialCollapsed = localStorage.getItem(STORAGE_KEY) === "true";
+  } catch {
+    initialCollapsed = false;
+  }
+
+  if (initialCollapsed) {
+    setCollapsed(true);
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    const isCurrentlyCollapsed = section.classList.contains("is-collapsed");
+    setCollapsed(!isCurrentlyCollapsed);
+  });
+}
+
+initDrawPileCollapse();
+
 // Initial pull on window load
 PeekBridge.getCurrentState().then((state) => {
   if (state) applyState(state);
