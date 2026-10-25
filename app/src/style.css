@@ -241,16 +241,23 @@ body {
   transition: transform 0.2s ease;
 }
 
-.draw-pile-section.is-collapsed .collapse-icon {
+.draw-pile-section.is-collapsed .collapse-icon,
+.vouchers-section.is-collapsed .collapse-icon {
   transform: rotate(-90deg);
 }
 
-.draw-pile-section.is-collapsed #draw-pile-list {
+.draw-pile-section.is-collapsed #draw-pile-list,
+.vouchers-section.is-collapsed #vouchers-list {
   display: none;
 }
 
-.draw-pile-section.is-collapsed .section-header {
+.draw-pile-section.is-collapsed .section-header,
+.vouchers-section.is-collapsed .section-header {
   margin-bottom: 0;
+}
+
+.vouchers-grid {
+  min-height: 50px;
 }
 
 .card-grid {

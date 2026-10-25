@@ -42,6 +42,15 @@ type SpecialCard struct {
 	ValChips   *float64    `json:"val_chips,omitempty"`
 }
 
+type VoucherItem struct {
+	Key   string `json:"key"`
+	Name  string `json:"name"`
+	Set   string `json:"set"`
+	PosX  int    `json:"pos_x"`
+	PosY  int    `json:"pos_y"`
+	Order int    `json:"order"`
+}
+
 type ScoringHand struct {
 	Name  string `json:"name"`
 	Level int    `json:"level"`
@@ -63,6 +72,7 @@ type LiveState struct {
 	ScoringHand  ScoringHand   `json:"scoring_hand"`
 	Jokers       []SpecialCard `json:"jokers"`
 	Consumables  []SpecialCard `json:"consumables"`
+	Vouchers     []VoucherItem `json:"vouchers"`
 	DrawPile     []Card        `json:"draw_pile"`
 	Hand         []Card        `json:"hand"`
 }

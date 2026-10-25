@@ -30,6 +30,7 @@ export interface LiveState {
   scoring_hand: ScoringHand;
   jokers: SpecialCard[];
   consumables: SpecialCard[];
+  vouchers: VoucherItem[];
   draw_pile: Card[];
   hand: Card[];
 }
@@ -57,6 +58,15 @@ export interface SpecialCard {
   val_mult?: number;
   val_x_mult?: number;
   val_chips?: number;
+}
+
+export interface VoucherItem {
+  key: string;
+  name: string;
+  set: string;
+  pos_x: number;
+  pos_y: number;
+  order: number;
 }
 
 // ---- Services ----

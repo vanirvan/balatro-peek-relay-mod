@@ -1,4 +1,4 @@
-import { PeekBridge, events, type Card, type LiveState, type SpecialCard } from "./mygo";
+import { PeekBridge, events, type Card, type LiveState, type SpecialCard, type VoucherItem } from "./mygo";
 
 // Balatro 8BitDeck atlas layout (pos: {x, y})
 // Each card cell: 71px x 95px
@@ -312,6 +312,39 @@ function updateConsumables(consumables: SpecialCard[]) {
   container.appendChild(frag);
 }
 
+function updateVouchers(vouchers: VoucherItem[]) {
+  const container = document.getElementById("vouchers-list");
+  const countBadge = document.getElementById("vouchers-count");
+  if (!container) return;
+
+  if (countBadge) countBadge.textContent = `${vouchers.length} vouchers`;
+
+  if (vouchers.length === 0) {
+    container.innerHTML = `<div class="empty-state">No vouchers redeemed</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  vouchers.forEach((v) => {
+    const cardLike: SpecialCard = {
+      id: v.key,
+      name: v.name,
+      set: "Voucher",
+      pos_x: v.pos_x,
+      pos_y: v.pos_y,
+      debuffed: false,
+      rarity: 1,
+      eternal: false,
+      perishable: false,
+      rental: false,
+      pinned: false,
+    };
+    frag.appendChild(renderSpecialCard(cardLike));
+  });
+  container.appendChild(frag);
+}
+
 function updateHUD(state: LiveState) {
   const seedEl = document.getElementById("val-seed");
   const anteEl = document.getElementById("val-ante");
@@ -396,27 +429,26 @@ function applyState(state: LiveState) {
   updateScoringBanner(state.scoring_hand);
   updateJokers(state.jokers || []);
   updateConsumables(state.consumables || []);
+  updateVouchers(state.vouchers || []);
   updateDrawPile(state.draw_pile || []);
   updateHand(state.hand || []);
 }
 
-function initDrawPileCollapse() {
-  const toggleBtn = document.getElementById("draw-pile-toggle");
-  const section = document.getElementById("draw-pile-section");
+function initCollapsibleSection(toggleId: string, sectionId: string, storageKey: string, defaultLabel: string) {
+  const toggleBtn = document.getElementById(toggleId);
+  const section = document.getElementById(sectionId);
   const label = toggleBtn?.querySelector(".collapse-label");
   if (!toggleBtn || !section) return;
-
-  const STORAGE_KEY = "peek_draw_pile_collapsed";
 
   const setCollapsed = (collapsed: boolean) => {
     section.classList.toggle("is-collapsed", collapsed);
     toggleBtn.setAttribute("aria-expanded", String(!collapsed));
-    toggleBtn.title = collapsed ? "Expand Draw Pile" : "Collapse Draw Pile";
+    toggleBtn.title = collapsed ? `Expand ${defaultLabel}` : `Collapse ${defaultLabel}`;
     if (label) {
       label.textContent = collapsed ? "Expand" : "Collapse";
     }
     try {
-      localStorage.setItem(STORAGE_KEY, String(collapsed));
+      localStorage.setItem(storageKey, String(collapsed));
     } catch {
       // Ignore storage errors in private browsing
     }
@@ -424,7 +456,7 @@ function initDrawPileCollapse() {
 
   let initialCollapsed = false;
   try {
-    initialCollapsed = localStorage.getItem(STORAGE_KEY) === "true";
+    initialCollapsed = localStorage.getItem(storageKey) === "true";
   } catch {
     initialCollapsed = false;
   }
@@ -439,7 +471,8 @@ function initDrawPileCollapse() {
   });
 }
 
-initDrawPileCollapse();
+initCollapsibleSection("draw-pile-toggle", "draw-pile-section", "peek_draw_pile_collapsed", "Draw Pile");
+initCollapsibleSection("vouchers-toggle", "vouchers-section", "peek_vouchers_collapsed", "Vouchers");
 
 // Initial pull on window load
 PeekBridge.getCurrentState().then((state) => {

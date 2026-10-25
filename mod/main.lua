@@ -263,6 +263,26 @@ local function dump_live_state()
         table.sort(consumables, function(a, b) return a.sort_x < b.sort_x end)
     end
 
+    -- Extract redeemed/purchased Vouchers
+    local vouchers = {}
+    if G.GAME and G.GAME.used_vouchers then
+        for v_key, _ in pairs(G.GAME.used_vouchers) do
+            local center = G.P_CENTERS and G.P_CENTERS[v_key]
+            local name = (center and center.name) or v_key
+            local pos = center and center.pos or {x = 0, y = 0}
+            local order = center and center.order or 999
+            vouchers[#vouchers + 1] = {
+                key = v_key,
+                name = name,
+                set = "Voucher",
+                pos_x = pos.x or 0,
+                pos_y = pos.y or 0,
+                order = order
+            }
+        end
+        table.sort(vouchers, function(a, b) return a.order < b.order end)
+    end
+
     local in_game = G.GAME and G.GAME.round_resets and true or false
 
     local blind_name = ""
@@ -291,6 +311,7 @@ local function dump_live_state()
         },
         jokers = jokers,
         consumables = consumables,
+        vouchers = vouchers,
         draw_pile = draw_pile,
         hand = hand
     }
@@ -298,7 +319,7 @@ local function dump_live_state()
     local json_str = to_json(payload)
 
     -- Quick change-detect to avoid redundant disk writes
-    local hash = string.format("%d_%d_%d_%d_%d_%d_%d_%s_%s", total_cards, #hand, #jokers, #consumables, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name)
+    local hash = string.format("%d_%d_%d_%d_%d_%d_%d_%d_%s_%s", total_cards, #hand, #jokers, #consumables, #vouchers, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name)
     if draw_pile[1] then
         hash = hash .. "_" .. tostring(draw_pile[1].id)
     end
@@ -308,6 +329,9 @@ local function dump_live_state()
     end
     for i = 1, #consumables do
         hash = hash .. "_c" .. tostring(consumables[i].id)
+    end
+    for i = 1, #vouchers do
+        hash = hash .. "_v" .. tostring(vouchers[i].key)
     end
 
     if hash ~= last_dump_hash then
