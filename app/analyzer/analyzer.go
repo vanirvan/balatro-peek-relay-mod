@@ -38,10 +38,10 @@ func AnalyzeSeed(seed string, currentAnte int, redeemedVouchers []string, maxAnt
 		return nil
 	}
 	if maxAnte <= 0 {
-		maxAnte = 16
+		maxAnte = 8
 	}
-	if currentAnte+4 > maxAnte {
-		maxAnte = currentAnte + 4
+	if currentAnte > maxAnte {
+		maxAnte = currentAnte + 2
 	}
 
 	rng := NewBalatroRNG(seed)
@@ -72,9 +72,8 @@ func AnalyzeSeed(seed string, currentAnte int, redeemedVouchers []string, maxAnt
 		// Voucher prediction for this Ante
 		antePred.Voucher = predictVoucher(rng, a, usedVouchers)
 
-		// Only mark as used if the user actually owns/redeemed this voucher!
-		// DO NOT assume future or unbought vouchers were automatically redeemed!
-		if usedVouchers[antePred.Voucher.Key] {
+		// If this ante has already passed or is current, consider its voucher as taken for future projections
+		if a < currentAnte || usedVouchers[antePred.Voucher.Key] {
 			usedVouchers[antePred.Voucher.Key] = true
 		}
 

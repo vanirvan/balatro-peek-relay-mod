@@ -114,7 +114,7 @@ func (PeekBridge) GetPredictions(seed string, ante int, vouchers []string) *anal
 	if strings.TrimSpace(seed) == "" {
 		return nil
 	}
-	return analyzer.AnalyzeSeed(seed, ante, vouchers, 16)
+	return analyzer.AnalyzeSeed(seed, ante, vouchers, 8)
 }
 
 // StateUpdated is emitted to frontend whenever live_deck.json changes.
@@ -182,7 +182,7 @@ func main() {
 							vKeys = append(vKeys, v.Key)
 						}
 
-						pred := analyzer.AnalyzeSeed(curSeed, state.Ante, vKeys, 16)
+						pred := analyzer.AnalyzeSeed(curSeed, state.Ante, vKeys, 8)
 						if pred != nil {
 							_ = PredictionUpdated.Emit(win, *pred)
 						}
