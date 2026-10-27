@@ -4,16 +4,6 @@ import { call, event } from "mygo-runtime";
 
 // ---- Types ----
 
-export interface AntePrediction {
-  ante: number;
-  boss: string;
-  boss_key: string;
-  voucher: VoucherPred;
-  small_tag: string;
-  big_tag: string;
-  shop_vouchers: string[];
-}
-
 export interface Card {
   rank: string;
   suit: string;
@@ -43,13 +33,6 @@ export interface LiveState {
   vouchers: VoucherItem[];
   draw_pile: Card[];
   hand: Card[];
-}
-
-export interface PredictionResult {
-  current_ante: number;
-  seed: string;
-  antes: AntePrediction[];
-  next_voucher_tags: string[];
 }
 
 export interface ScoringHand {
@@ -86,24 +69,12 @@ export interface VoucherItem {
   order: number;
 }
 
-export interface VoucherPred {
-  key: string;
-  name: string;
-  pos_x: number;
-  pos_y: number;
-  resample: number;
-}
-
 // ---- Services ----
 
 export const PeekBridge = {
   /** GetCurrentState returns the latest state immediately when requested by frontend. */
   getCurrentState(): Promise<LiveState | null> {
     return call("PeekBridge.GetCurrentState");
-  },
-  /** GetPredictions computes or returns predicted future antes/vouchers/bosses based on live state. */
-  getPredictions(seed: string, ante: number, vouchers: string[]): Promise<PredictionResult | null> {
-    return call("PeekBridge.GetPredictions", seed, ante, vouchers);
   },
 } as const;
 
@@ -113,6 +84,4 @@ export const PeekBridge = {
 export const events = {
   /** StateUpdated is emitted to frontend whenever live_deck.json changes. */
   stateUpdated: event<LiveState>("state_updated"),
-  /** PredictionUpdated is emitted to frontend whenever seed, ante, or inventory changes. */
-  predictionUpdated: event<PredictionResult>("prediction_updated"),
 } as const;

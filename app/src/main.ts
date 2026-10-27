@@ -1,4 +1,4 @@
-import { PeekBridge, events, type Card, type LiveState, type SpecialCard, type VoucherItem, type PredictionResult } from "./mygo";
+import { PeekBridge, events, type Card, type LiveState, type SpecialCard, type VoucherItem } from "./mygo";
 
 // Balatro 8BitDeck atlas layout (pos: {x, y})
 // Each card cell: 71px x 95px
@@ -424,87 +424,6 @@ function updateScoringBanner(scoringHand?: LiveState["scoring_hand"]) {
   banner.classList.remove("hidden");
 }
 
-function updatePredictions(pred: PredictionResult) {
-  const statusEl = document.getElementById("analyzer-status");
-  const tagListEl = document.getElementById("tag-queue-items");
-  const gridEl = document.getElementById("analyzer-grid");
-
-  if (statusEl) {
-    statusEl.textContent = `Ante ${pred.current_ante} Analyzed`;
-  }
-
-  // Update Voucher Tag queue preview
-  if (tagListEl) {
-    if (!pred.next_voucher_tags || pred.next_voucher_tags.length === 0) {
-      tagListEl.innerHTML = `<span class="tag-item">None</span>`;
-    } else {
-      tagListEl.innerHTML = pred.next_voucher_tags
-        .map((tag, i) => `<span class="tag-item">#${i + 1}: ${tag}</span>`)
-        .join("");
-    }
-  }
-
-  // Update Ante predictions grid
-  if (gridEl) {
-    if (!pred.antes || pred.antes.length === 0) {
-      gridEl.innerHTML = `<div class="empty-state">No predictions available</div>`;
-      return;
-    }
-
-    gridEl.innerHTML = "";
-    const frag = document.createDocumentFragment();
-
-    pred.antes.forEach((ap) => {
-      const card = document.createElement("div");
-      card.className = "ante-pred-card";
-      if (ap.ante === pred.current_ante) {
-        card.classList.add("is-current");
-      } else if (ap.ante < pred.current_ante) {
-        card.classList.add("is-past");
-      }
-
-      // Header: Ante number + Boss
-      const header = document.createElement("div");
-      header.className = "ante-pred-header";
-      header.innerHTML = `
-        <span class="ante-num">ANTE ${ap.ante}</span>
-        <span class="ante-boss" title="${ap.boss}">${ap.boss}</span>
-      `;
-      card.appendChild(header);
-
-      // Voucher card widget
-      const v = ap.voucher;
-      const voucherCard: SpecialCard = {
-        id: v.key,
-        name: v.name,
-        set: "Voucher",
-        pos_x: v.pos_x,
-        pos_y: v.pos_y,
-        debuffed: false,
-        rarity: 1,
-        eternal: false,
-        perishable: false,
-        rental: false,
-        pinned: false,
-      };
-      const renderedVoucher = renderSpecialCard(voucherCard);
-      card.appendChild(renderedVoucher);
-
-      // Resample info if resampled
-      if (v.resample > 1) {
-        const resampleEl = document.createElement("span");
-        resampleEl.className = "resample-indicator";
-        resampleEl.textContent = `(resample #${v.resample})`;
-        card.appendChild(resampleEl);
-      }
-
-      frag.appendChild(card);
-    });
-
-    gridEl.appendChild(frag);
-  }
-}
-
 function applyState(state: LiveState) {
   updateHUD(state);
   updateScoringBanner(state.scoring_hand);
@@ -554,27 +473,13 @@ function initCollapsibleSection(toggleId: string, sectionId: string, storageKey:
 
 initCollapsibleSection("draw-pile-toggle", "draw-pile-section", "peek_draw_pile_collapsed", "Draw Pile");
 initCollapsibleSection("vouchers-toggle", "vouchers-section", "peek_vouchers_collapsed", "Vouchers");
-initCollapsibleSection("analyzer-toggle", "analyzer-section", "peek_analyzer_collapsed", "Seed Predictions");
 
 // Initial pull on window load
 PeekBridge.getCurrentState().then((state) => {
-  if (state) {
-    applyState(state);
-    if (state.seed) {
-      const vKeys = (state.vouchers || []).map((v) => v.key);
-      PeekBridge.getPredictions(state.seed, state.ante, vKeys).then((pred) => {
-        if (pred) updatePredictions(pred);
-      });
-    }
-  }
+  if (state) applyState(state);
 });
 
 // Real-time updates from Go watcher
 events.stateUpdated.on((state) => {
   applyState(state);
-});
-
-// Real-time predictions pushed from Go watcher
-events.predictionUpdated.on((pred) => {
-  if (pred) updatePredictions(pred);
 });

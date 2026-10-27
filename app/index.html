@@ -127,42 +127,6 @@
           <div class="empty-state">Waiting for Balatro run data...</div>
         </div>
       </section>
-
-      <!-- Live Seed Analyzer Section -->
-      <section id="analyzer-section" class="section-container analyzer-section">
-        <div class="section-header">
-          <h2>SEED PREDICTIONS <span class="subtext">(vouchers, bosses & tag queue)</span></h2>
-          <div class="section-actions">
-            <span id="analyzer-status" class="count-badge">Ready</span>
-            <button
-              id="analyzer-toggle"
-              class="collapse-btn"
-              type="button"
-              aria-expanded="true"
-              aria-controls="analyzer-content"
-              title="Collapse Analyzer"
-            >
-              <svg class="collapse-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-              <span class="collapse-label">Collapse</span>
-            </button>
-          </div>
-        </div>
-        <div id="analyzer-content" class="analyzer-content">
-          <!-- Tag Queue preview -->
-          <div class="tag-queue-bar">
-            <span class="tag-queue-label">UPCOMING VOUCHER TAGS:</span>
-            <div id="tag-queue-items" class="tag-queue-items">
-              <span class="tag-item">Waiting for seed...</span>
-            </div>
-          </div>
-          <!-- Ante Cards grid -->
-          <div id="analyzer-grid" class="analyzer-grid">
-            <div class="empty-state">No seed analyzed yet</div>
-          </div>
-        </div>
-      </section>
     </div>
 
     <script type="module" src="./src/main.ts"></script>

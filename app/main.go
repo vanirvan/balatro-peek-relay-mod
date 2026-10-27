@@ -1,14 +1,12 @@
 package main
 
 import (
-	"app/analyzer"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -109,19 +107,8 @@ func (PeekBridge) GetCurrentState() *LiveState {
 	return state
 }
 
-// GetPredictions computes or returns predicted future antes/vouchers/bosses based on live state.
-func (PeekBridge) GetPredictions(seed string, ante int, vouchers []string) *analyzer.PredictionResult {
-	if strings.TrimSpace(seed) == "" {
-		return nil
-	}
-	return analyzer.AnalyzeSeed(seed, ante, vouchers, 8)
-}
-
 // StateUpdated is emitted to frontend whenever live_deck.json changes.
 var StateUpdated = mygo.NewEvent[LiveState]("state_updated")
-
-// PredictionUpdated is emitted to frontend whenever seed, ante, or inventory changes.
-var PredictionUpdated = mygo.NewEvent[analyzer.PredictionResult]("prediction_updated")
 
 func main() {
 	mygo.Bind(PeekBridge{})
@@ -140,12 +127,6 @@ func main() {
 
 		go func() {
 			var lastHash string
-			var lastSeed string
-			var lastAnte int
-			var lastVoucherCount int
-			var lastJokerCount int
-			var lastConsumableCount int
-
 			ticker := time.NewTicker(200 * time.Millisecond)
 			defer ticker.Stop()
 
@@ -158,34 +139,6 @@ func main() {
 					lastHash = hash
 					if StateUpdated.Emit(win, *state) != nil {
 						return // window closed
-					}
-
-					// Retrigger seed analyzer efficiently whenever:
-					// 1. Seed changes
-					// 2. Ante changes
-					// 3. Voucher is bought/redeemed
-					// 4. Joker or Consumable count changes
-					curSeed := strings.TrimSpace(state.Seed)
-					vCount := len(state.Vouchers)
-					jCount := len(state.Jokers)
-					cCount := len(state.Consumables)
-
-					if curSeed != "" && (curSeed != lastSeed || state.Ante != lastAnte || vCount != lastVoucherCount || jCount != lastJokerCount || cCount != lastConsumableCount) {
-						lastSeed = curSeed
-						lastAnte = state.Ante
-						lastVoucherCount = vCount
-						lastJokerCount = jCount
-						lastConsumableCount = cCount
-
-						vKeys := make([]string, 0, vCount)
-						for _, v := range state.Vouchers {
-							vKeys = append(vKeys, v.Key)
-						}
-
-						pred := analyzer.AnalyzeSeed(curSeed, state.Ante, vKeys, 8)
-						if pred != nil {
-							_ = PredictionUpdated.Emit(win, *pred)
-						}
 					}
 				}
 			}
