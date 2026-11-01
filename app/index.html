@@ -9,9 +9,20 @@
   <body>
     <div id="app">
       <header class="hud-bar">
-        <div class="hud-item">
-          <span class="hud-label">SEED</span>
-          <span id="val-seed" class="hud-val font-mono">--------</span>
+        <div class="hud-item hud-seed-item" id="hud-seed-btn" title="Click to copy seed" role="button" tabindex="0">
+          <div class="hud-seed-header">
+            <span class="hud-label">SEED</span>
+            <span class="copy-hint" id="seed-copy-hint" aria-hidden="true" title="Copy to clipboard">
+              <svg class="copy-icon" viewBox="0 0 24 24" width="11" height="11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </span>
+          </div>
+          <div class="hud-seed-val-row">
+            <span id="val-seed" class="hud-val font-mono">--------</span>
+            <span id="seed-copied-toast" class="seed-copied-toast">COPIED!</span>
+          </div>
         </div>
         <div class="hud-item">
           <span class="hud-label">ANTE</span>
@@ -58,32 +69,7 @@
         </section>
       </div>
 
-      <!-- Vouchers Section -->
-      <section id="vouchers-section" class="section-container vouchers-section">
-        <div class="section-header">
-          <h2>REDEEMED VOUCHERS</h2>
-          <div class="section-actions">
-            <span id="vouchers-count" class="count-badge">0 vouchers</span>
-            <button
-              id="vouchers-toggle"
-              class="collapse-btn"
-              type="button"
-              aria-expanded="true"
-              aria-controls="vouchers-list"
-              title="Collapse Vouchers"
-            >
-              <svg class="collapse-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-              <span class="collapse-label">Collapse</span>
-            </button>
-          </div>
-        </div>
-        <div id="vouchers-list" class="card-grid special-grid vouchers-grid">
-          <div class="empty-state">No vouchers redeemed</div>
-        </div>
-      </section>
-
+      <!-- Current Hand Section -->
       <section class="section-container">
         <div class="section-header">
           <div class="hand-header-left">
@@ -103,6 +89,7 @@
         </div>
       </section>
 
+      <!-- Draw Pile Section -->
       <section id="draw-pile-section" class="section-container draw-pile-section">
         <div class="section-header">
           <h2>DRAW PILE <span class="subtext">(next drawn cards in order)</span></h2>
@@ -125,6 +112,65 @@
         </div>
         <div id="draw-pile-list" class="card-grid">
           <div class="empty-state">Waiting for Balatro run data...</div>
+        </div>
+      </section>
+
+      <!-- Seed Prediction Section (Bosses, Vouchers, Tags, Packs) -->
+      <section id="prediction-section" class="section-container prediction-section">
+        <div class="section-header">
+          <div class="prediction-header-left">
+            <h2>SEED PREDICTION <span class="subtext">(Bosses, Vouchers, Tags, Packs)</span></h2>
+            <span id="prediction-status-badge" class="count-badge">Ante 1</span>
+          </div>
+          <div class="section-actions">
+            <button
+              id="prediction-toggle"
+              class="collapse-btn"
+              type="button"
+              aria-expanded="true"
+              aria-controls="prediction-content"
+              title="Collapse Prediction"
+            >
+              <svg class="collapse-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              <span class="collapse-label">Collapse</span>
+            </button>
+          </div>
+        </div>
+        <div id="prediction-content" class="prediction-content">
+          <div id="ante-tabs" class="ante-tabs-bar">
+            <!-- Ante tabs populated dynamically -->
+          </div>
+          <div id="ante-prediction-view" class="ante-view-container">
+            <div class="empty-state">Waiting for seed and game state...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Redeemed Vouchers Section -->
+      <section id="vouchers-section" class="section-container vouchers-section">
+        <div class="section-header">
+          <h2>REDEEMED VOUCHERS</h2>
+          <div class="section-actions">
+            <span id="vouchers-count" class="count-badge">0 vouchers</span>
+            <button
+              id="vouchers-toggle"
+              class="collapse-btn"
+              type="button"
+              aria-expanded="true"
+              aria-controls="vouchers-list"
+              title="Collapse Vouchers"
+            >
+              <svg class="collapse-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              <span class="collapse-label">Collapse</span>
+            </button>
+          </div>
+        </div>
+        <div id="vouchers-list" class="card-grid special-grid vouchers-grid">
+          <div class="empty-state">No vouchers redeemed</div>
         </div>
       </section>
     </div>

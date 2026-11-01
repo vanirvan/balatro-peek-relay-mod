@@ -1,4 +1,15 @@
-import { PeekBridge, events, type Card, type LiveState, type SpecialCard, type VoucherItem } from "./mygo";
+import {
+  PeekBridge,
+  events,
+  type AntePrediction,
+  type Card,
+  type CardItem,
+  type LiveState,
+  type PredictionResult,
+  type SpecialCard,
+  type TagPrediction,
+  type VoucherItem,
+} from "./mygo";
 
 // Balatro 8BitDeck atlas layout (pos: {x, y})
 // Each card cell: 71px x 95px
@@ -36,9 +47,9 @@ const CARD_H = 95;
 // Default card base (c_base): {x:1, y:0}
 const ENHANCEMENT_POS: Record<string, { x: number; y: number }> = {
   "Bonus Card": { x: 1, y: 1 },
-  "Bonus": { x: 1, y: 1 },
+  Bonus: { x: 1, y: 1 },
   "Mult Card": { x: 2, y: 1 },
-  "Mult": { x: 2, y: 1 },
+  Mult: { x: 2, y: 1 },
   "Wild Card": { x: 3, y: 1 },
   "Lucky Card": { x: 4, y: 1 },
   "Glass Card": { x: 5, y: 1 },
@@ -272,6 +283,420 @@ function renderSpecialCard(card: SpecialCard): HTMLElement {
   return wrapper;
 }
 
+// Render predicted card item (in packs, tag rewards, etc.)
+function renderCardItem(card: CardItem): HTMLElement {
+  const wrapper = document.createElement("div");
+  wrapper.className = "card-wrapper";
+
+  const cardBox = document.createElement("div");
+  cardBox.className = "card-box";
+
+  // Check card type: Playing card vs Special card (Joker/Tarot/Planet/Spectral/Voucher)
+  if (card.set === "Default" || card.set === "Enhanced" || (card.rank && card.suit)) {
+    // Base or Enhancer background
+    const baseLayer = document.createElement("div");
+    baseLayer.className = "card-layer card-base-layer";
+    const enhPos = (card.enhancement && ENHANCEMENT_POS[card.enhancement]) || BASE_CARD_POS;
+    const enhOffset = getEnhancerOffset(enhPos);
+    baseLayer.style.backgroundPosition = `${enhOffset.x}px ${enhOffset.y}px`;
+    cardBox.appendChild(baseLayer);
+
+    // Front rank/suit layer (skip if stone)
+    if (card.enhancement !== "Stone Card" && card.enhancement !== "Stone" && card.suit && card.rank) {
+      const frontLayer = document.createElement("div");
+      frontLayer.className = "card-layer card-front-layer";
+      const offset = getCardSpriteOffset(card.suit, card.rank);
+      frontLayer.style.backgroundPosition = `${offset.x}px ${offset.y}px`;
+      cardBox.appendChild(frontLayer);
+    }
+
+    // Seal
+    const sealPos = card.seal ? SEAL_POS[card.seal] : undefined;
+    if (sealPos) {
+      const sealLayer = document.createElement("div");
+      sealLayer.className = "card-layer card-seal-layer";
+      const sOffset = getEnhancerOffset(sealPos);
+      sealLayer.style.backgroundPosition = `${sOffset.x}px ${sOffset.y}px`;
+      cardBox.appendChild(sealLayer);
+    }
+  } else {
+    // Special card (Joker, Tarot, Planet, Spectral, Voucher)
+    const baseLayer = document.createElement("div");
+    baseLayer.className = "card-layer card-base-layer";
+    const baseOffset = getEnhancerOffset(BASE_CARD_POS);
+    baseLayer.style.backgroundPosition = `${baseOffset.x}px ${baseOffset.y}px`;
+    cardBox.appendChild(baseLayer);
+
+    const artLayer = document.createElement("div");
+    artLayer.className = "card-layer";
+    if (card.set === "Joker") {
+      artLayer.classList.add("card-joker-layer");
+    } else if (card.set === "Voucher") {
+      artLayer.classList.add("card-voucher-layer");
+    } else {
+      artLayer.classList.add("card-tarot-layer");
+    }
+    artLayer.style.backgroundPosition = `${-(card.pos_x * CARD_W)}px ${-(card.pos_y * CARD_H)}px`;
+    cardBox.appendChild(artLayer);
+  }
+
+  // Edition overlay
+  if (card.edition) {
+    const editionLayer = document.createElement("div");
+    editionLayer.className = `card-layer card-edition-layer edition-${card.edition.toLowerCase()}`;
+    cardBox.appendChild(editionLayer);
+  }
+
+  // Stickers (Eternal, Perishable, Rental)
+  if (card.stickers?.eternal) {
+    const sLayer = document.createElement("div");
+    sLayer.className = "card-layer card-sticker-layer";
+    sLayer.style.backgroundPosition = `${-(STICKER_POS.eternal.x * CARD_W)}px ${-(STICKER_POS.eternal.y * CARD_H)}px`;
+    cardBox.appendChild(sLayer);
+  }
+  if (card.stickers?.perishable) {
+    const sLayer = document.createElement("div");
+    sLayer.className = "card-layer card-sticker-layer";
+    sLayer.style.backgroundPosition = `${-(STICKER_POS.perishable.x * CARD_W)}px ${-(STICKER_POS.perishable.y * CARD_H)}px`;
+    cardBox.appendChild(sLayer);
+  }
+  if (card.stickers?.rental) {
+    const sLayer = document.createElement("div");
+    sLayer.className = "card-layer card-sticker-layer";
+    sLayer.style.backgroundPosition = `${-(STICKER_POS.rental.x * CARD_W)}px ${-(STICKER_POS.rental.y * CARD_H)}px`;
+    cardBox.appendChild(sLayer);
+  }
+
+  wrapper.appendChild(cardBox);
+
+  // Label name under card
+  if (card.name) {
+    const nameLabel = document.createElement("div");
+    nameLabel.className = "special-name";
+    nameLabel.textContent = card.name;
+    nameLabel.title = card.name;
+    wrapper.appendChild(nameLabel);
+  }
+
+  // Badge row
+  const badgeRow = document.createElement("div");
+  badgeRow.className = "card-badge-row";
+
+  if (card.seal) {
+    const seal = document.createElement("span");
+    seal.className = `badge badge-seal-${card.seal.toLowerCase()}`;
+    seal.textContent = card.seal;
+    badgeRow.appendChild(seal);
+  }
+
+  if (card.edition) {
+    const edition = document.createElement("span");
+    edition.className = `badge badge-${card.edition.toLowerCase()}`;
+    edition.textContent = card.edition;
+    badgeRow.appendChild(edition);
+  }
+
+  if (card.enhancement) {
+    const enh = document.createElement("span");
+    enh.className = "badge badge-enhancement";
+    enh.textContent = card.enhancement.replace(" Card", "");
+    badgeRow.appendChild(enh);
+  }
+
+  if (card.stickers?.eternal) {
+    const st = document.createElement("span");
+    st.className = "badge badge-debuff";
+    st.textContent = "ETERNAL";
+    badgeRow.appendChild(st);
+  }
+  if (card.stickers?.perishable) {
+    const st = document.createElement("span");
+    st.className = "badge badge-debuff";
+    st.textContent = "PERISH";
+    badgeRow.appendChild(st);
+  }
+  if (card.stickers?.rental) {
+    const st = document.createElement("span");
+    st.className = "badge badge-debuff";
+    st.textContent = "RENTAL";
+    badgeRow.appendChild(st);
+  }
+
+  if (badgeRow.children.length > 0) {
+    wrapper.appendChild(badgeRow);
+  }
+
+  return wrapper;
+}
+
+function renderTagBadge(tag: TagPrediction): HTMLElement {
+  const card = document.createElement("div");
+  card.className = "tag-badge-card";
+
+  // Chip sprite (34x34 px)
+  const chip = document.createElement("div");
+  chip.className = "tag-chip-sprite";
+  chip.style.backgroundPosition = `${-(tag.pos_x * 34)}px ${-(tag.pos_y * 34)}px`;
+  chip.title = `${tag.name} (${tag.blind} Blind)`;
+  card.appendChild(chip);
+
+  // Labels column
+  const labelCol = document.createElement("div");
+  labelCol.className = "tag-label-col";
+
+  const titleRow = document.createElement("div");
+  titleRow.className = "tag-title-row";
+
+  const blindPill = document.createElement("span");
+  blindPill.className = "tag-blind-pill";
+  blindPill.textContent = tag.blind;
+  titleRow.appendChild(blindPill);
+
+  const tagName = document.createElement("span");
+  tagName.className = "tag-name";
+  tagName.textContent = tag.name;
+  titleRow.appendChild(tagName);
+
+  labelCol.appendChild(titleRow);
+
+  const rewardDesc = document.createElement("span");
+  rewardDesc.className = "tag-reward-desc";
+  rewardDesc.textContent = tag.reward_title;
+  labelCol.appendChild(rewardDesc);
+
+  // If there are reward preview cards (e.g. Charm Tag gives 5 Arcana cards, Top-up gives Jokers, etc.)
+  if (tag.reward_cards && tag.reward_cards.length > 0) {
+    const previewContainer = document.createElement("div");
+    previewContainer.className = "tag-reward-preview-cards";
+    tag.reward_cards.forEach((rc) => {
+      const miniChip = document.createElement("span");
+      miniChip.className = "tag-reward-mini-chip";
+      let text = rc.name;
+      if (rc.edition) text += ` (${rc.edition})`;
+      miniChip.textContent = text;
+      previewContainer.appendChild(miniChip);
+    });
+    labelCol.appendChild(previewContainer);
+  }
+
+  card.appendChild(labelCol);
+  return card;
+}
+
+// Global prediction state
+let latestLiveState: LiveState | null = null;
+let latestPrediction: PredictionResult | null = null;
+let selectedAnte: number = 1;
+let lastKnownAnte: number = -1;
+
+function renderActiveAnte() {
+  const container = document.getElementById("ante-prediction-view");
+  const badge = document.getElementById("prediction-status-badge");
+  if (!container) return;
+
+  if (!latestPrediction || !latestPrediction.antes || latestPrediction.antes.length === 0) {
+    container.innerHTML = `<div class="empty-state">Waiting for seed and game state...</div>`;
+    return;
+  }
+
+  const anteData = latestPrediction.antes.find((a) => a.ante === selectedAnte) || latestPrediction.antes[0];
+  if (!anteData) {
+    container.innerHTML = `<div class="empty-state">No prediction for Ante ${selectedAnte}</div>`;
+    return;
+  }
+
+  if (badge) {
+    badge.textContent = `Ante ${anteData.ante}`;
+  }
+
+  container.innerHTML = "";
+
+  // Main Ante Title Header
+  const titleHeader = document.createElement("div");
+  titleHeader.className = "ante-main-title";
+  titleHeader.innerHTML = `<span>Ante ${anteData.ante}</span>`;
+  container.appendChild(titleHeader);
+
+  // Top Row: Voucher Card on left + Modifiers (Boss Blind & Tags) on right
+  const topRow = document.createElement("div");
+  topRow.className = "ante-top-row";
+
+  // 1. Large Voucher Card Box on the left
+  const voucherCol = document.createElement("div");
+  voucherCol.className = "voucher-col";
+
+  const voucherBox = document.createElement("div");
+  voucherBox.className = "voucher-card-box";
+  voucherBox.title = anteData.voucher.name;
+
+  const vBase = document.createElement("div");
+  vBase.className = "card-layer card-base-layer";
+  const baseOffset = getEnhancerOffset(BASE_CARD_POS);
+  vBase.style.backgroundPosition = `${baseOffset.x}px ${baseOffset.y}px`;
+  voucherBox.appendChild(vBase);
+
+  const vArt = document.createElement("div");
+  vArt.className = "card-layer card-voucher-layer";
+  vArt.style.backgroundPosition = `${-(anteData.voucher.pos_x * CARD_W)}px ${-(anteData.voucher.pos_y * CARD_H)}px`;
+  voucherBox.appendChild(vArt);
+
+  voucherCol.appendChild(voucherBox);
+
+  const vName = document.createElement("div");
+  vName.className = "special-name";
+  vName.textContent = anteData.voucher.name;
+  voucherCol.appendChild(vName);
+
+  topRow.appendChild(voucherCol);
+
+  // 2. Modifiers Column (Boss Blind & Tags)
+  const modCol = document.createElement("div");
+  modCol.className = "ante-modifiers-col";
+
+  // Boss Blind group
+  const bossGroup = document.createElement("div");
+  bossGroup.className = "modifier-badge-group";
+
+  const bossCard = document.createElement("div");
+  bossCard.className = "boss-info-card";
+
+  const bossChip = document.createElement("div");
+  bossChip.className = "boss-chip-sprite";
+  bossChip.style.backgroundPosition = `${-(anteData.boss.pos_x * 34)}px ${-(anteData.boss.pos_y * 34)}px`;
+  bossChip.title = anteData.boss.name;
+  bossCard.appendChild(bossChip);
+
+  const bossName = document.createElement("span");
+  bossName.className = "boss-name-text";
+  bossName.textContent = anteData.boss.name;
+  bossCard.appendChild(bossName);
+
+  bossGroup.appendChild(bossCard);
+
+  // Director's Cut 1st Reroll
+  if (anteData.boss.director_cut_reroll) {
+    const dcPill = document.createElement("div");
+    dcPill.className = "boss-reroll-pill";
+    dcPill.title = "Director's Cut Voucher 1st Reroll";
+    dcPill.innerHTML = `<span>🎲 Reroll 1:</span><strong>${anteData.boss.director_cut_reroll.name}</strong>`;
+    bossGroup.appendChild(dcPill);
+  }
+
+  // Retcon Voucher 2nd & 3rd Rerolls
+  if (anteData.boss.retcon_rerolls && anteData.boss.retcon_rerolls.length > 0) {
+    anteData.boss.retcon_rerolls.forEach((r, idx) => {
+      const retconPill = document.createElement("div");
+      retconPill.className = "boss-reroll-pill retcon";
+      retconPill.title = `Retcon Voucher Reroll ${idx + 2}`;
+      retconPill.innerHTML = `<span>🎲 Reroll ${idx + 2}:</span><strong>${r.name}</strong>`;
+      bossGroup.appendChild(retconPill);
+    });
+  }
+
+  modCol.appendChild(bossGroup);
+
+  // Tags group
+  if (anteData.tags && anteData.tags.length > 0) {
+    const tagsGroup = document.createElement("div");
+    tagsGroup.className = "modifier-badge-group";
+    anteData.tags.forEach((tag) => {
+      tagsGroup.appendChild(renderTagBadge(tag));
+    });
+    modCol.appendChild(tagsGroup);
+  }
+
+  topRow.appendChild(modCol);
+  container.appendChild(topRow);
+
+  // Packs Section
+  const packsSection = document.createElement("div");
+  packsSection.className = "packs-section-container";
+
+  const packsHeader = document.createElement("h3");
+  packsHeader.className = "packs-main-header";
+  packsHeader.textContent = "Packs";
+  packsSection.appendChild(packsHeader);
+
+  anteData.packs.forEach((blindPack) => {
+    const blindGroup = document.createElement("div");
+    blindGroup.className = "blind-packs-group";
+
+    const blindTitle = document.createElement("div");
+    blindTitle.className = "blind-group-title";
+    blindTitle.textContent = blindPack.blind;
+    blindGroup.appendChild(blindTitle);
+
+    if (blindPack.packs.length === 0) {
+      const noPacks = document.createElement("div");
+      noPacks.className = "no-packs-text";
+      noPacks.textContent = "No packs available";
+      blindGroup.appendChild(noPacks);
+    } else {
+      blindPack.packs.forEach((pack) => {
+        const packEntry = document.createElement("div");
+        packEntry.className = "pack-entry";
+
+        const packTitle = document.createElement("div");
+        packTitle.className = "pack-entry-title";
+        packTitle.textContent = pack.title;
+        packEntry.appendChild(packTitle);
+
+        const cardsRow = document.createElement("div");
+        cardsRow.className = "pack-cards-row";
+        pack.cards.forEach((c) => {
+          cardsRow.appendChild(renderCardItem(c));
+        });
+        packEntry.appendChild(cardsRow);
+
+        blindGroup.appendChild(packEntry);
+      });
+    }
+
+    packsSection.appendChild(blindGroup);
+  });
+
+  container.appendChild(packsSection);
+}
+
+function updateAnteTabs(pred: PredictionResult) {
+  const tabsBar = document.getElementById("ante-tabs");
+  if (!tabsBar) return;
+
+  tabsBar.innerHTML = "";
+  pred.antes.forEach((a) => {
+    const tab = document.createElement("button");
+    tab.className = "ante-tab";
+    tab.type = "button";
+    tab.textContent = `Ante ${a.ante}`;
+    if (a.ante === selectedAnte) {
+      tab.classList.add("is-active");
+      requestAnimationFrame(() => {
+        tab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+      });
+    }
+    if (latestLiveState && latestLiveState.ante === a.ante) {
+      tab.classList.add("is-current-run");
+    }
+    tab.addEventListener("click", () => {
+      selectedAnte = a.ante;
+      updateAnteTabs(pred);
+      renderActiveAnte();
+    });
+    tabsBar.appendChild(tab);
+  });
+}
+
+function applyPredictions(pred: PredictionResult) {
+  latestPrediction = pred;
+  if (latestLiveState && latestLiveState.ante > 0) {
+    selectedAnte = latestLiveState.ante;
+  } else if (!selectedAnte || selectedAnte < 1 || selectedAnte > pred.antes.length) {
+    selectedAnte = pred.current_ante || 1;
+  }
+  updateAnteTabs(pred);
+  renderActiveAnte();
+}
+
 function updateJokers(jokers: SpecialCard[]) {
   const container = document.getElementById("jokers-list");
   const countBadge = document.getElementById("jokers-count");
@@ -345,7 +770,10 @@ function updateVouchers(vouchers: VoucherItem[]) {
   container.appendChild(frag);
 }
 
+let currentSeed: string = "";
+
 function updateHUD(state: LiveState) {
+  currentSeed = state.seed || "";
   const seedEl = document.getElementById("val-seed");
   const anteEl = document.getElementById("val-ante");
   const blindEl = document.getElementById("val-blind");
@@ -425,6 +853,12 @@ function updateScoringBanner(scoringHand?: LiveState["scoring_hand"]) {
 }
 
 function applyState(state: LiveState) {
+  const anteChanged = state.ante > 0 && state.ante !== lastKnownAnte;
+  if (anteChanged) {
+    lastKnownAnte = state.ante;
+    selectedAnte = state.ante;
+  }
+  latestLiveState = state;
   updateHUD(state);
   updateScoringBanner(state.scoring_hand);
   updateJokers(state.jokers || []);
@@ -432,6 +866,30 @@ function applyState(state: LiveState) {
   updateVouchers(state.vouchers || []);
   updateDrawPile(state.draw_pile || []);
   updateHand(state.hand || []);
+
+  if (latestPrediction) {
+    if (anteChanged) {
+      renderActiveAnte();
+    }
+    updateAnteTabs(latestPrediction);
+  } else if (state.seed) {
+    // Initial fetch if prediction not yet received
+    const vKeys = (state.vouchers || []).map((v) => v.key);
+    const jNames = (state.jokers || []).map((j) => j.name);
+    const cNames = (state.consumables || []).map((c) => c.name);
+    PeekBridge.getPredictions(
+      state.seed,
+      state.ante,
+      vKeys,
+      jNames,
+      cNames,
+      state.pool_flags || {},
+      state.deck || "Red Deck",
+      state.stake || 1
+    ).then((pred) => {
+      if (pred) applyPredictions(pred);
+    });
+  }
 }
 
 function initCollapsibleSection(toggleId: string, sectionId: string, storageKey: string, defaultLabel: string) {
@@ -471,8 +929,66 @@ function initCollapsibleSection(toggleId: string, sectionId: string, storageKey:
   });
 }
 
+function initSeedCopyButton() {
+  const btn = document.getElementById("hud-seed-btn");
+  const toast = document.getElementById("seed-copied-toast");
+  if (!btn) return;
+
+  let toastTimer: number | null = null;
+
+  const copy = async () => {
+    const seed = currentSeed || document.getElementById("val-seed")?.textContent?.trim() || "";
+    if (!seed || seed === "--------") return;
+
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(seed);
+        copied = true;
+      }
+    } catch {
+      copied = false;
+    }
+
+    if (!copied) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = seed;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (copied && toast) {
+      toast.classList.add("visible");
+      if (toastTimer !== null) clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toast.classList.remove("visible");
+        toastTimer = null;
+      }, 1200);
+    }
+  };
+
+  btn.addEventListener("click", copy);
+  btn.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      copy();
+    }
+  });
+}
+
 initCollapsibleSection("draw-pile-toggle", "draw-pile-section", "peek_draw_pile_collapsed", "Draw Pile");
 initCollapsibleSection("vouchers-toggle", "vouchers-section", "peek_vouchers_collapsed", "Vouchers");
+initCollapsibleSection("prediction-toggle", "prediction-section", "peek_prediction_collapsed", "Seed Prediction");
+initSeedCopyButton();
 
 // Initial pull on window load
 PeekBridge.getCurrentState().then((state) => {
@@ -482,4 +998,9 @@ PeekBridge.getCurrentState().then((state) => {
 // Real-time updates from Go watcher
 events.stateUpdated.on((state) => {
   applyState(state);
+});
+
+// Seed prediction updates from Go analyzer
+events.predictionUpdated.on((pred) => {
+  applyPredictions(pred);
 });

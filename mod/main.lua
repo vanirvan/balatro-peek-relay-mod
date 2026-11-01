@@ -25,6 +25,15 @@ local function to_json(val)
     elseif t == "string" then
         return string.format("%q", val)
     elseif t == "table" then
+        if val.__is_map then
+            local parts = {}
+            for k, v in pairs(val) do
+                if k ~= "__is_map" then
+                    parts[#parts + 1] = string.format("%q:%s", tostring(k), to_json(v))
+                end
+            end
+            return "{" .. table.concat(parts, ",") .. "}"
+        end
         local is_array = true
         local n = 0
         for k, _ in pairs(val) do
@@ -292,12 +301,33 @@ local function dump_live_state()
         blind_chip_target = G.GAME.blind.chips or 0
     end
 
+    local deck_name = "Red Deck"
+    if G.GAME and G.GAME.selected_back and G.GAME.selected_back.name then
+        deck_name = G.GAME.selected_back.name
+    elseif G.GAME and G.GAME.viewed_back and G.GAME.viewed_back.name then
+        deck_name = G.GAME.viewed_back.name
+    end
+
+    local stake_level = (G.GAME and G.GAME.stake) or 1
+
+    local pool_flags = {__is_map = true}
+    if G.GAME and G.GAME.pool_flags then
+        for k, v in pairs(G.GAME.pool_flags) do
+            if type(v) == "boolean" or type(v) == "number" or type(v) == "string" then
+                pool_flags[k] = v
+            end
+        end
+    end
+
     local payload = {
         timestamp = os.time(),
         status = in_game and "in_game" or "idle",
         seed = (G.GAME and G.GAME.pseudorandom and G.GAME.pseudorandom.seed) or "",
         ante = (G.GAME and G.GAME.round_resets and G.GAME.round_resets.ante) or 0,
         round = (G.GAME and G.GAME.round) or 0,
+        deck = deck_name,
+        stake = stake_level,
+        pool_flags = pool_flags,
         blind = blind_name,
         blind_chips = blind_chip_target,
         hands_left = (G.GAME and G.GAME.current_round and G.GAME.current_round.hands_left) or 0,
@@ -319,7 +349,7 @@ local function dump_live_state()
     local json_str = to_json(payload)
 
     -- Quick change-detect to avoid redundant disk writes
-    local hash = string.format("%d_%d_%d_%d_%d_%d_%d_%d_%s_%s", total_cards, #hand, #jokers, #consumables, #vouchers, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name)
+    local hash = string.format("%d_%d_%d_%d_%d_%d_%d_%d_%s_%s_%s_%d", total_cards, #hand, #jokers, #consumables, #vouchers, #highlighted_cards, payload.hands_left, payload.discards_left, blind_name, hand_name, payload.seed, payload.ante)
     if draw_pile[1] then
         hash = hash .. "_" .. tostring(draw_pile[1].id)
     end
@@ -332,6 +362,9 @@ local function dump_live_state()
     end
     for i = 1, #vouchers do
         hash = hash .. "_v" .. tostring(vouchers[i].key)
+    end
+    for k, v in pairs(pool_flags) do
+        hash = hash .. "_pf" .. tostring(k) .. ":" .. tostring(v)
     end
 
     if hash ~= last_dump_hash then

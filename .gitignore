@@ -16,6 +16,7 @@ node_modules/
 
 # Local game artifacts / test dumps
 live_deck.json
+balatro_src/
 
 # Internal plans
 PEEK_DECK_PLAN.md

@@ -4,6 +4,35 @@ import { call, event } from "mygo-runtime";
 
 // ---- Types ----
 
+export interface AntePrediction {
+  ante: number;
+  boss: BossPrediction;
+  voucher: VoucherPrediction;
+  tags: TagPrediction[];
+  packs: BlindPacks[];
+}
+
+export interface BlindPacks {
+  blind: string;
+  packs: PackPrediction[];
+}
+
+export interface BossPrediction {
+  name: string;
+  key: string;
+  pos_x: number;
+  pos_y: number;
+  director_cut_reroll?: BossRef;
+  retcon_rerolls?: BossRef[];
+}
+
+export interface BossRef {
+  name: string;
+  key: string;
+  pos_x: number;
+  pos_y: number;
+}
+
 export interface Card {
   rank: string;
   suit: string;
@@ -16,12 +45,34 @@ export interface Card {
   scoring: boolean;
 }
 
+export interface CardItem {
+  name: string;
+  set: string;
+  pos_x: number;
+  pos_y: number;
+  edition?: string;
+  stickers: CardStickers;
+  rank?: string;
+  suit?: string;
+  enhancement?: string;
+  seal?: string;
+}
+
+export interface CardStickers {
+  eternal: boolean;
+  perishable: boolean;
+  rental: boolean;
+}
+
 export interface LiveState {
   timestamp: number;
   status: string;
   seed: string;
   ante: number;
   round: number;
+  deck: string;
+  stake: number;
+  pool_flags: PoolFlagsMap;
   blind: string;
   blind_chips: number;
   hands_left: number;
@@ -33,6 +84,25 @@ export interface LiveState {
   vouchers: VoucherItem[];
   draw_pile: Card[];
   hand: Card[];
+}
+
+export interface PackPrediction {
+  name: string;
+  type: string;
+  size: number;
+  choices: number;
+  title: string;
+  cards: CardItem[];
+}
+
+export type PoolFlagsMap = Record<string, boolean>;
+
+export interface PredictionResult {
+  current_ante: number;
+  seed: string;
+  deck: string;
+  stake: number;
+  antes: AntePrediction[];
 }
 
 export interface ScoringHand {
@@ -60,6 +130,18 @@ export interface SpecialCard {
   val_chips?: number;
 }
 
+export interface TagPrediction {
+  name: string;
+  blind: string;
+  pos_x: number;
+  pos_y: number;
+  reward_type: string;
+  reward_title: string;
+  reward_cards?: CardItem[];
+  reward_voucher?: VoucherPrediction;
+  reward_hand?: string;
+}
+
 export interface VoucherItem {
   key: string;
   name: string;
@@ -69,12 +151,24 @@ export interface VoucherItem {
   order: number;
 }
 
+export interface VoucherPrediction {
+  key: string;
+  name: string;
+  pos_x: number;
+  pos_y: number;
+  resample: number;
+}
+
 // ---- Services ----
 
 export const PeekBridge = {
   /** GetCurrentState returns the latest state immediately when requested by frontend. */
   getCurrentState(): Promise<LiveState | null> {
     return call("PeekBridge.GetCurrentState");
+  },
+  /** GetPredictions executes seed prediction on demand from the frontend. */
+  getPredictions(seed: string, ante: number, vouchers: string[], jokers: string[], consumables: string[], poolFlags: Record<string, boolean>, deck: string, stake: number): Promise<PredictionResult | null> {
+    return call("PeekBridge.GetPredictions", seed, ante, vouchers, jokers, consumables, poolFlags, deck, stake);
   },
 } as const;
 
@@ -84,4 +178,6 @@ export const PeekBridge = {
 export const events = {
   /** StateUpdated is emitted to frontend whenever live_deck.json changes. */
   stateUpdated: event<LiveState>("state_updated"),
+  /** PredictionUpdated is emitted to frontend whenever prediction inputs change. */
+  predictionUpdated: event<PredictionResult>("prediction_updated"),
 } as const;
