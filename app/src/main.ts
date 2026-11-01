@@ -670,9 +670,6 @@ function updateAnteTabs(pred: PredictionResult) {
     tab.textContent = `Ante ${a.ante}`;
     if (a.ante === selectedAnte) {
       tab.classList.add("is-active");
-      requestAnimationFrame(() => {
-        tab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-      });
     }
     if (latestLiveState && latestLiveState.ante === a.ante) {
       tab.classList.add("is-current-run");
